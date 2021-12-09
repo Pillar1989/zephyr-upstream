@@ -30,10 +30,10 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 #include <net/net_if.h>
 #include <net/ethernet.h>
 #include <ethernet/eth_stats.h>
+#include <pm/device.h>
 
 #if defined(CONFIG_PTP_CLOCK_MCUX)
 #include <drivers/ptp_clock.h>
-#include <net/gptp.h>
 #endif
 
 #if IS_ENABLED(CONFIG_NET_DSA)
@@ -184,8 +184,8 @@ static int ts_tx_rd, ts_tx_wr;
 static void eth_mcux_phy_enter_reset(struct eth_context *context);
 void eth_mcux_phy_stop(struct eth_context *context);
 
-static int eth_mcux_device_pm_control(const struct device *dev,
-				      enum pm_device_action action)
+static int eth_mcux_device_pm_action(const struct device *dev,
+				     enum pm_device_action action)
 {
 	struct eth_context *eth_ctx = (struct eth_context *)dev->data;
 	int ret = 0;
@@ -231,11 +231,6 @@ out:
 
 	return ret;
 }
-
-#define ETH_MCUX_PM_FUNC eth_mcux_device_pm_control
-
-#else
-#define ETH_MCUX_PM_FUNC NULL
 #endif /* CONFIG_NET_POWER_MANAGEMENT */
 
 #if ETH_MCUX_FIXED_LINK
@@ -831,7 +826,7 @@ error:
 	eth_stats_update_errors_rx(get_iface(context, vlan_tag));
 }
 
-#if defined(CONFIG_PTP_CLOCK_MCUX) && defined(CONFIG_NET_GPTP)
+#if defined(CONFIG_PTP_CLOCK_MCUX) && defined(CONFIG_NET_L2_PTP)
 static inline void ts_register_tx_event(struct eth_context *context,
 					 enet_frame_info_t *frameinfo)
 {
@@ -863,7 +858,7 @@ static inline void ts_register_tx_event(struct eth_context *context,
 		ts_tx_rd = 0;
 	}
 }
-#endif /* CONFIG_PTP_CLOCK_MCUX && CONFIG_NET_PKT_TIMESTAMP */
+#endif /* CONFIG_PTP_CLOCK_MCUX && CONFIG_NET_L2_PTP */
 
 static void eth_callback(ENET_Type *base, enet_handle_t *handle,
 #if FSL_FEATURE_ENET_QUEUE > 1
@@ -878,10 +873,10 @@ static void eth_callback(ENET_Type *base, enet_handle_t *handle,
 		eth_rx(context);
 		break;
 	case kENET_TxEvent:
-#if defined(CONFIG_PTP_CLOCK_MCUX) && defined(CONFIG_NET_GPTP)
+#if defined(CONFIG_PTP_CLOCK_MCUX) && defined(CONFIG_NET_L2_PTP)
 		/* Register event */
 		ts_register_tx_event(context, frameinfo);
-#endif /* CONFIG_PTP_CLOCK_MCUX && CONFIG_NET_GPTP */
+#endif /* CONFIG_PTP_CLOCK_MCUX && CONFIG_NET_L2_PTP */
 
 		/* Free the TX buffer. */
 		k_sem_give(&context->tx_buf_sem);
@@ -910,7 +905,8 @@ static void eth_mcux_init(const struct device *dev)
 	enet_config_t enet_config;
 	uint32_t sys_clock;
 #if defined(CONFIG_PTP_CLOCK_MCUX)
-	uint8_t ptp_multicast[6] = { 0x01, 0x80, 0xC2, 0x00, 0x00, 0x0E };
+	uint8_t ptp_multicast[6] = { 0x01, 0x1B, 0x19, 0x00, 0x00, 0x00 };
+	uint8_t ptp_peer_multicast[6] = { 0x01, 0x80, 0xC2, 0x00, 0x00, 0x0E };
 #endif
 #if defined(CONFIG_MDNS_RESPONDER) || defined(CONFIG_MDNS_RESOLVER)
 	/* standard multicast MAC address */
@@ -960,6 +956,7 @@ static void eth_mcux_init(const struct device *dev)
 
 #if defined(CONFIG_PTP_CLOCK_MCUX)
 	ENET_AddMulticastGroup(context->base, ptp_multicast);
+	ENET_AddMulticastGroup(context->base, ptp_peer_multicast);
 
 	context->ptp_config.channel = kENET_PtpTimerChannel1;
 	context->ptp_config.ptp1588ClockSrc_Hz =
@@ -1029,14 +1026,18 @@ static int eth_init(const struct device *dev)
 
 #if defined(CONFIG_NET_IPV6)
 static void net_if_mcast_cb(struct net_if *iface,
-			    const struct in6_addr *addr,
+			    const struct net_addr *addr,
 			    bool is_joined)
 {
 	const struct device *dev = net_if_get_device(iface);
 	struct eth_context *context = dev->data;
 	struct net_eth_addr mac_addr;
 
-	net_eth_ipv6_mcast_to_mac_addr(addr, &mac_addr);
+	if (addr->family != AF_INET6) {
+		return;
+	}
+
+	net_eth_ipv6_mcast_to_mac_addr(&addr->in6_addr, &mac_addr);
 
 	if (is_joined) {
 		ENET_AddMulticastGroup(context->base, mac_addr.addr);
@@ -1388,9 +1389,11 @@ static void eth_mcux_err_isr(const struct device *dev)
 		ETH_MCUX_PTP_FRAMEINFO(n)				\
 	};								\
 									\
-	ETH_NET_DEVICE_DT_INST_DEFINE(n,					\
+	PM_DEVICE_DT_INST_DEFINE(n, eth_mcux_device_pm_action);		\
+									\
+	ETH_NET_DEVICE_DT_INST_DEFINE(n,				\
 			    eth_init,					\
-			    ETH_MCUX_PM_FUNC,				\
+			    PM_DEVICE_DT_INST_REF(n),			\
 			    &eth##n##_context,				\
 			    &eth##n##_buffer_config,			\
 			    CONFIG_ETH_INIT_PRIORITY,			\
@@ -1451,7 +1454,8 @@ static int ptp_clock_mcux_adjust(const struct device *dev, int increment)
 
 	ARG_UNUSED(dev);
 
-	if ((increment <= -NSEC_PER_SEC) || (increment >= NSEC_PER_SEC)) {
+	if ((increment <= (int32_t)(-NSEC_PER_SEC)) ||
+			(increment >= (int32_t)NSEC_PER_SEC)) {
 		ret = -EINVAL;
 	} else {
 		key = irq_lock();
@@ -1480,27 +1484,27 @@ static int ptp_clock_mcux_rate_adjust(const struct device *dev, float ratio)
 	float val;
 
 	/* No change needed. */
-	if (ratio == 1.0) {
+	if (ratio == 1.0f) {
 		return 0;
 	}
 
 	ratio *= context->clk_ratio;
 
 	/* Limit possible ratio. */
-	if ((ratio > 1.0 + 1.0/(2 * hw_inc)) ||
-			(ratio < 1.0 - 1.0/(2 * hw_inc))) {
+	if ((ratio > 1.0f + 1.0f/(2 * hw_inc)) ||
+			(ratio < 1.0f - 1.0f/(2 * hw_inc))) {
 		return -EINVAL;
 	}
 
 	/* Save new ratio. */
 	context->clk_ratio = ratio;
 
-	if (ratio < 1.0) {
+	if (ratio < 1.0f) {
 		corr = hw_inc - 1;
-		val = 1.0 / (hw_inc * (1.0 - ratio));
-	} else if (ratio > 1.0) {
+		val = 1.0f / (hw_inc * (1.0f - ratio));
+	} else if (ratio > 1.0f) {
 		corr = hw_inc + 1;
-		val = 1.0 / (hw_inc * (ratio-1.0));
+		val = 1.0f / (hw_inc * (ratio - 1.0f));
 	} else {
 		val = 0;
 		corr = hw_inc;

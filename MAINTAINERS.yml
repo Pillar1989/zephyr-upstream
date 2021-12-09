@@ -151,7 +151,6 @@ ARM64 arch:
         - carlocaione
     collaborators:
         - npitre
-        - ioannisg
         - povergoing
     files:
         - arch/arm64/
@@ -168,7 +167,7 @@ Bluetooth:
     maintainers:
         - jhedberg
     collaborators:
-        - joerchan
+        - alwa-nordic
         - Vudentz
         - Thalley
         - asbjornsabo
@@ -196,6 +195,10 @@ Bluetooth controller:
     collaborators:
         - carlescufi
         - thoh-ot
+        - kruithofa
+        - ppryga
+        - mtpr-ot
+        - wopu-ot
     files:
         - subsys/bluetooth/controller/
     labels:
@@ -207,6 +210,8 @@ Bluetooth Mesh:
         - trond-snekvik
     collaborators:
         - jhedberg
+        - LingaoM
+        - alxelax
     files:
         - subsys/bluetooth/mesh/
         - include/bluetooth/mesh/
@@ -219,7 +224,9 @@ Build system:
     maintainers:
         - tejlmand
     collaborators:
+        - jeremybettis
         - nashif
+        - SebastianBoe
     files:
         - cmake/
         - CMakeLists.txt
@@ -276,7 +283,6 @@ CMSIS-DSP integration:
         - stephanosio
     collaborators:
         - galak
-        - ioannisg
     files:
         - modules/Kconfig.cmsis_dsp
         - tests/benchmarks/cmsis_dsp/
@@ -381,6 +387,7 @@ Display drivers:
         - vanwinkeljan
     collaborators:
         - jfischer-no
+        - gmarull
     files:
         - drivers/display/
         - dts/bindings/display/
@@ -401,6 +408,7 @@ Documentation:
         - nashif
         - utzig
         - mbolivar-nordic
+        - gmarull
     files:
         - doc/
         - doc/_static/
@@ -433,6 +441,7 @@ Documentation:
         - lyakh
         - lgirdwood
         - mengxianglinx
+        - marc-hb
     files:
         - drivers/audio/
         - include/audio/
@@ -462,6 +471,8 @@ Documentation:
         - tests/drivers/can/
         - samples/subsys/canbus/
         - doc/reference/networking/can_api.rst
+        - modules/canopennode/
+        - samples/modules/canopennode/
     labels:
         - "area: CAN"
 
@@ -678,6 +689,7 @@ Documentation:
       - albertofloyd
     collaborators:
       - VenkatKotakonda
+      - gmarull
     files:
         - drivers/kscan/
         - include/drivers/kscan.h
@@ -774,6 +786,8 @@ Documentation:
     status: maintained
     maintainers:
         - mnkp
+    collaborators:
+        - gmarull
     files:
         - doc/reference/peripherals/pinmux.rst
         - drivers/pinmux/
@@ -809,6 +823,7 @@ Documentation:
         - anangl
     collaborators:
         - henrikbrixandersen
+        - gmarull
     files:
         - drivers/pwm/
         - dts/bindings/pwm/
@@ -836,6 +851,8 @@ Documentation:
         - MaureenHelm
     collaborators:
         - avisconti
+        - gmarull
+        - teburd
     files:
         - drivers/sensor/
         - include/drivers/sensor.h
@@ -883,6 +900,7 @@ Documentation:
     status: orphaned
     collaborators:
         - katsuster
+        - martinjaeger
     files:
         - doc/reference/peripherals/watchdog.rst
         - drivers/watchdog/
@@ -933,6 +951,20 @@ Filesystems:
         - tests/subsys/fs/
     labels:
         - "area: File System"
+
+IPC:
+    status: maintained
+    maintainers:
+        - carlocaione
+        - arnopo
+    files:
+        - include/ipc/
+        - samples/subsys/ipc/
+        - subsys/ipc/
+    description: >-
+        Inter-Processor Communication
+    labels:
+        - "area: IPC"
 
 JSON Web Token:
     status: orphaned
@@ -1021,7 +1053,6 @@ MAINTAINERS file:
     maintainers:
         - MaureenHelm
     collaborators:
-        - ioannisg
         - nashif
     files:
         - MAINTAINERS.yml
@@ -1030,10 +1061,25 @@ MAINTAINERS file:
     description: >-
         Zephyr Maintainers File
 
+Mbed TLS:
+    status: maintained
+    maintainers:
+        - d3zd3z
+        - ceolin
+    files:
+        - modules/mbedtls/
+        - tests/crypto/mbedtls/
+    labels:
+        - "area: Crypto / RNG"
+    description: >-
+        Mbed TLS module implementing the PSA Crypto API and TLS.
+
 MCU Manager:
     status: maintained
     maintainers:
         - de-nordic
+    collaborators:
+        - lairdjm
     files:
         - subsys/mgmt/mcumgr/
         - include/mgmt/mcumgr/
@@ -1051,6 +1097,17 @@ OSDP:
         - samples/subsys/mgmt/osdp/
     labels:
         - "area: OSDP"
+
+hawkBit:
+    status: orphaned
+    collaborators:
+        - ycsin
+    files:
+        - subsys/mgmt/hawkbit/
+        - include/mgmt/hawkbit.h
+        - samples/subsys/mgmt/hawkbit/
+    labels:
+        - "area: hawkBit"
 
 Native POSIX and POSIX arch:
     status: maintained
@@ -1125,6 +1182,8 @@ Networking:
     status: maintained
     maintainers:
         - rlubos
+    collaborators:
+        - pdgendt
     files:
         - subsys/net/lib/coap/
         - samples/net/sockets/coap_*/
@@ -1152,6 +1211,20 @@ Networking:
         - samples/net/mqtt_publisher/
     labels:
         - "area: Networking"
+
+"Networking: OpenThread":
+    status: maintained
+    maintainers:
+        - rlubos
+    collaborators:
+        - pdgendt
+    files:
+        - subsys/net/l2/openthread/
+        - subsys/net/lib/openthread/
+        - samples/net/openthread/
+    labels:
+        - "area: Networking"
+        - "area: OpenThread"
 
 NIOS-2 arch:
     status: maintained
@@ -1192,6 +1265,8 @@ Power management:
     collaborators:
         - nashif
         - mengxianglinx
+        - gmarull
+        - teburd
     files:
         - include/pm/pm.h
         - samples/subsys/pm/
@@ -1201,10 +1276,16 @@ Power management:
         - "area: Power Management"
 
 RISCV arch:
-    status: orphaned
+    status: maintained
+    maintainers:
+        - kgugala
+        - pgielda
+        - tgorochowik
     collaborators:
+        - fkokosinski
         - mgielda
         - katsuster
+        - henrikbrixandersen
     files:
         - arch/riscv/
         - boards/riscv/
@@ -1279,10 +1360,44 @@ SPARC arch:
     labels:
         - "area: SPARC"
 
+State machine framework:
+    status: maintained
+    maintainers:
+        - sambhurst
+    collaborators:
+        - keith-zephyr
+    files:
+        - doc/guides/smf/
+        - include/smf.h
+        - lib/smf/
+        - tests/lib/smf/
+    labels:
+        - "area: State Machine Framework"
+
+GD32 Platforms:
+    status: maintained
+    maintainers:
+        - nandojve
+        - gmarull
+    files:
+        - boards/arm/gd32*/
+        - drivers/*/*gd32*/
+        - drivers/*/*gd32*
+        - dts/arm/gigadevice/
+        - dts/bindings/*/*gd32*
+        - modules/hal_gigadevice/
+        - soc/arm/gigadevice/
+        - scripts/west_commands/*/*gd32*
+    labels:
+        - "platform: GD32"
+    description: >-
+        GigaDevice GD32 SOCs, dts files and related drivers. Starter and eval
+        boards.
+
 Synopsys Platforms:
     status: maintained
     maintainers:
-        - ruudw
+        - ruuddw
     collaborators:
         - abrodkin
         - evgeniy-paltsev
@@ -1350,6 +1465,7 @@ Intel Platforms (X86):
     collaborators:
         - jhedberg
         - aasthagr
+        - laurenmurphyx64
     files:
         - boards/x86/
         - soc/x86/
@@ -1408,7 +1524,7 @@ Microchip Platforms:
 nRF Platforms:
     status: maintained
     maintainers:
-        - ioannisg
+        - anangl
     files:
         - boards/arm/*nrf*/
         - drivers/*/*nrfx*.c
@@ -1425,6 +1541,7 @@ STM32 Platforms:
     collaborators:
         - ABOSTM
         - FRASTM
+        - gmarull
     files:
         - boards/arm/nucleo_*/
         - boards/arm/stm32*_disco/
@@ -1448,7 +1565,7 @@ Espressif Platforms:
     maintainers:
         - sylvioalves
         - glaubermaroto
-        - ulipe
+        - uLipe
     files:
         - drivers/*/*esp32*.c
         - boards/xtensa/esp32*/
@@ -1479,7 +1596,8 @@ ITE Platforms:
         - sjg20
     files:
         - boards/riscv/it8xxx2_evb/
-        - drivers/*/*it8xxx2*
+        - drivers/*/*/*it8xxx2*.c
+        - drivers/*/*it8xxx2*.c
         - dts/bindings/*/*ite*
         - dts/riscv/*it8xxx2*
         - soc/riscv/riscv-ite/
@@ -1497,14 +1615,26 @@ Storage:
     labels:
         - "area: Storage"
 
+Task Watchdog:
+    status: maintained
+    maintainers:
+        - martinjaeger
+    files:
+        - include/task_wdt/
+        - samples/subsys/task_wdt/
+        - subsys/task_wdt/
+    labels:
+        - "area: Task Watchdog"
+
 TF-M Integration:
     status: maintained
     maintainers:
         - microbuilder
     collaborators:
-        - ioannisg
+        - SebastianBoe
     files:
         - samples/tfm_integration/
+        - modules/trusted-firmware-m/
     labels:
         - "area: TF-M"
 
@@ -1512,6 +1642,9 @@ Tracing:
     status: maintained
     maintainers:
         - nashif
+    collaborators:
+        - teburd
+        - tleksell-pe
     files:
         - subsys/tracing/
         - include/tracing/
@@ -1542,7 +1675,6 @@ Userspace:
     maintainers:
         - dcpleung
     collaborators:
-        - ioannisg
         - enjiamai
     files:
         - doc/reference/usermode/kernelobjects.rst
@@ -1614,6 +1746,7 @@ x86 arch:
         - ceolin
         - enjiamai
         - aasthagr
+        - laurenmurphyx64
     files:
         - arch/x86/
         - include/arch/x86/
@@ -1642,6 +1775,8 @@ ZTest:
     status: maintained
     maintainers:
         - nashif
+    collaborators:
+        - jeremybettis
     files:
         - subsys/testsuite/
         - tests/ztest/

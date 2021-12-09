@@ -1670,7 +1670,7 @@ static int cmd_per_adv_sync_delete(const struct shell *sh, size_t argc,
 	}
 
 	if (index >= ARRAY_SIZE(per_adv_syncs)) {
-		shell_error(sh, "Maximum index is %u but %u was requested",
+		shell_error(sh, "Maximum index is %ld but %d was requested",
 			    ARRAY_SIZE(per_adv_syncs) - 1, index);
 	}
 
@@ -1807,7 +1807,7 @@ static int cmd_per_adv_sync_transfer(const struct shell *sh, size_t argc,
 	}
 
 	if (index >= ARRAY_SIZE(per_adv_syncs)) {
-		shell_error(sh, "Maximum index is %u but %u was requested",
+		shell_error(sh, "Maximum index is %ld but %d was requested",
 			    ARRAY_SIZE(per_adv_syncs) - 1, index);
 	}
 
@@ -2839,6 +2839,10 @@ static int cmd_auth(const struct shell *sh, size_t argc, char *argv[])
 	} else {
 		shell_help(sh);
 		return SHELL_CMD_HELP_PRINTED;
+	}
+
+	if (err) {
+		shell_error(sh, "Failed to set auth handlers (%d)", err);
 	}
 
 	return err;

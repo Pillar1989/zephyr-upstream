@@ -7,7 +7,7 @@
 #define ZEPHYR_INCLUDE_LOGGING_LOG_CORE_H_
 
 #include <logging/log_msg.h>
-#include <logging/log_core2.h>
+#include <logging/log_msg2.h>
 #include <logging/log_instance.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -15,6 +15,9 @@
 #include <syscall.h>
 #include <sys/util.h>
 
+/* This header file keeps all macros and functions needed for creating logging
+ * messages (macros like @ref LOG_ERR).
+ */
 #define LOG_LEVEL_NONE 0U
 #define LOG_LEVEL_ERR  1U
 #define LOG_LEVEL_WRN  2U
@@ -30,7 +33,7 @@ extern "C" {
 #define CONFIG_LOG_MAX_LEVEL 0U
 #endif
 
-#if !defined(CONFIG_LOG) || defined(CONFIG_LOG_MINIMAL)
+#if !defined(CONFIG_LOG) || defined(CONFIG_LOG_MODE_MINIMAL)
 #define CONFIG_LOG_DOMAIN_ID 0U
 #endif
 
@@ -177,7 +180,8 @@ extern "C" {
 #define Z_LOG_NARGS_POSTFIX_IMPL(				\
 	_ignored,						\
 	_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10,		\
-	_11, _12, _13, _14, N, ...) N
+	_11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21,  \
+	_22, _23, _24, _25, _26, _27, _28, _29, _30, _31, N, ...) N
 
 /**@brief Macro to get the postfix for further log message processing.
  *
@@ -189,7 +193,9 @@ extern "C" {
  */
 #define Z_LOG_NARGS_POSTFIX(...) \
 	Z_LOG_NARGS_POSTFIX_IMPL(__VA_ARGS__, LONG, LONG, LONG, LONG, LONG, \
-			LONG, LONG, LONG, LONG, LONG, LONG, LONG, 3, 2, 1, 0, ~)
+			LONG, LONG, LONG, LONG, LONG, LONG, LONG, LONG, LONG, \
+			LONG, LONG, LONG, LONG, LONG, LONG, LONG, LONG, LONG, \
+			LONG, LONG, LONG, LONG, LONG, LONG, 3, 2, 1, 0, ~)
 
 #define Z_LOG_INTERNAL_X(N, ...)  UTIL_CAT(_LOG_INTERNAL_, N)(__VA_ARGS__)
 
@@ -253,7 +259,7 @@ extern "C" {
 	))
 
 /*****************************************************************************/
-/****************** Defiinitions used by minimal logging *********************/
+/****************** Definitions used by minimal logging *********************/
 /*****************************************************************************/
 void z_log_minimal_hexdump_print(int level, const void *data, size_t size);
 void z_log_minimal_vprintk(const char *fmt, va_list ap);
@@ -296,7 +302,7 @@ static inline char z_log_minimal_level_to_char(int level)
 	if (!Z_LOG_CONST_LEVEL_CHECK(_level)) { \
 		break; \
 	} \
-	if (IS_ENABLED(CONFIG_LOG_MINIMAL)) { \
+	if (IS_ENABLED(CONFIG_LOG_MODE_MINIMAL)) { \
 		Z_LOG_TO_PRINTK(_level, __VA_ARGS__); \
 		break; \
 	} \
@@ -350,7 +356,7 @@ static inline char z_log_minimal_level_to_char(int level)
 	uint32_t filters = IS_ENABLED(CONFIG_LOG_RUNTIME_FILTERING) ? \
 						(_dsource)->filters : 0;\
 	\
-	if (IS_ENABLED(CONFIG_LOG_MINIMAL)) { \
+	if (IS_ENABLED(CONFIG_LOG_MODE_MINIMAL)) { \
 		Z_LOG_TO_PRINTK(_level, "%s", _str); \
 		z_log_minimal_hexdump_print(_level, \
 					    (const char *)_data, _len);\
@@ -468,7 +474,7 @@ enum log_strdup_action {
 };
 
 #define Z_LOG_PRINTK(...) do { \
-	if (IS_ENABLED(CONFIG_LOG_MINIMAL) || !IS_ENABLED(CONFIG_LOG2)) { \
+	if (IS_ENABLED(CONFIG_LOG_MODE_MINIMAL) || !IS_ENABLED(CONFIG_LOG2)) { \
 		z_log_minimal_printk(__VA_ARGS__); \
 		break; \
 	} \
@@ -480,27 +486,6 @@ enum log_strdup_action {
 			  CONFIG_LOG_DOMAIN_ID, NULL, \
 			  LOG_LEVEL_INTERNAL_RAW_STRING, NULL, 0, __VA_ARGS__);\
 } while (0)
-
-
-/** @brief Get name of the log source.
- *
- * @param source_id Source ID.
- * @return Name.
- */
-static inline const char *log_name_get(uint32_t source_id)
-{
-	return __log_const_start[source_id].name;
-}
-
-/** @brief Get compiled level of the log source.
- *
- * @param source_id Source ID.
- * @return Level.
- */
-static inline uint8_t log_compiled_level_get(uint32_t source_id)
-{
-	return __log_const_start[source_id].level;
-}
 
 /** @brief Get index of the log source based on the address of the constant data
  *         associated with the source.
@@ -516,12 +501,6 @@ static inline uint32_t log_const_source_id(
 			sizeof(struct log_source_const_data);
 }
 
-/** @brief Get number of registered sources. */
-static inline uint32_t log_sources_count(void)
-{
-	return log_const_source_id(__log_const_end);
-}
-
 extern struct log_source_dynamic_data __log_dynamic_start[];
 extern struct log_source_dynamic_data __log_dynamic_end[];
 
@@ -533,17 +512,6 @@ extern struct log_source_dynamic_data __log_dynamic_end[];
 
 #define LOG_INSTANCE_DYNAMIC_DATA(_module_name, _inst) \
 	LOG_ITEM_DYNAMIC_DATA(LOG_INSTANCE_FULL_NAME(_module_name, _inst))
-
-/** @brief Get pointer to the filter set of the log source.
- *
- * @param source_id Source ID.
- *
- * @return Pointer to the filter set.
- */
-static inline uint32_t *log_dynamic_filters_get(uint32_t source_id)
-{
-	return &__log_dynamic_start[source_id].filters;
-}
 
 /** @brief Get index of the log source based on the address of the dynamic data
  *         associated with the source.
@@ -557,12 +525,6 @@ static inline uint32_t log_dynamic_source_id(struct log_source_dynamic_data *dat
 	return ((uint8_t *)data - (uint8_t *)__log_dynamic_start)/
 			sizeof(struct log_source_dynamic_data);
 }
-
-/* Initialize runtime filters */
-void z_log_runtime_filters_init(void);
-
-/* Notify log_core that a backend was enabled. */
-void z_log_notify_backend_enabled(void);
 
 /** @brief Dummy function to trigger log messages arguments type checking. */
 static inline __printf_like(1, 2)
@@ -710,49 +672,6 @@ void log_generic_from_user(struct log_msg_ids src_level,
  */
 bool log_is_strdup(const void *buf);
 
-/** @brief Free allocated buffer.
- *
- * @param buf Buffer.
- */
-void log_free(void *buf);
-
-/**
- * @brief Get current number of allocated buffers for string duplicates.
- */
-uint32_t log_get_strdup_pool_current_utilization(void);
-
-/**
- * @brief Get maximal number of simultaneously allocated buffers for string
- *	  duplicates.
- *
- * Value can be used to determine pool size.
- */
-uint32_t log_get_strdup_pool_utilization(void);
-
-/**
- * @brief Get length of the longest string duplicated.
- *
- * Value can be used to determine buffer size in the string duplicates pool.
- */
-uint32_t log_get_strdup_longest_string(void);
-
-/** @brief Indicate to the log core that one log message has been dropped.
- */
-void z_log_dropped(void);
-
-/** @brief Read and clear current drop indications counter.
- *
- * @return Dropped count.
- */
-uint32_t z_log_dropped_read_and_clear(void);
-
-/** @brief Check if there are any pending drop notifications.
- *
- * @retval true Pending unreported drop indications.
- * @retval false No pending unreported drop indications.
- */
-bool z_log_dropped_pending(void);
-
 /** @brief Log a message from user mode context.
  *
  * @note This function is intended to be used internally
@@ -815,7 +734,7 @@ __syscall void z_log_hexdump_from_user(uint32_t src_level_val,
 	if (!Z_LOG_CONST_LEVEL_CHECK(_level)) { \
 		break; \
 	} \
-	if (IS_ENABLED(CONFIG_LOG_MINIMAL)) { \
+	if (IS_ENABLED(CONFIG_LOG_MODE_MINIMAL)) { \
 		Z_LOG_TO_VPRINTK(_level, _str, _valist); \
 		break; \
 	} \
@@ -862,7 +781,7 @@ static inline log_arg_t z_log_do_strdup(uint32_t msk, uint32_t idx,
 					log_arg_t param,
 					enum log_strdup_action action)
 {
-#ifndef CONFIG_LOG_MINIMAL
+#ifndef CONFIG_LOG_MODE_MINIMAL
 	char *z_log_strdup(const char *str);
 
 	if (msk & (1 << idx)) {

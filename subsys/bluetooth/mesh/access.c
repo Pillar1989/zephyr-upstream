@@ -241,6 +241,15 @@ static void mod_publish(struct k_work *work)
 
 	if (pub->count) {
 		pub->count--;
+
+		if (pub->retr_update && pub->update &&
+		    bt_mesh_model_pub_is_retransmission(pub->mod)) {
+			err = pub->update(pub->mod);
+			if (err) {
+				publish_sent(err, pub->mod);
+				return;
+			}
+		}
 	} else {
 		/* First publication in this period */
 		err = pub_period_start(pub);
@@ -766,7 +775,7 @@ int bt_mesh_model_publish(struct bt_mesh_model *model)
 	}
 
 	/* Account for initial transmission */
-	pub->count = BT_MESH_PUB_TRANSMIT_COUNT(pub->retransmit) + 1;
+	pub->count = BT_MESH_PUB_MSG_TOTAL(pub);
 
 	BT_DBG("Publish Retransmit Count %u Interval %ums", pub->count,
 	       BT_MESH_PUB_TRANSMIT_INT(pub->retransmit));
@@ -821,12 +830,12 @@ void bt_mesh_model_extensions_walk(struct bt_mesh_model *model,
 #else
 	struct bt_mesh_model *it;
 
-	if (model->next == NULL) {
-		(void)cb(model, user_data);
+	if (cb(model, user_data) == BT_MESH_WALK_STOP || !model->next) {
 		return;
 	}
 
-	for (it = model; (it != NULL) && (it->next != model); it = it->next) {
+	/* List is circular. Step through all models until we reach the start: */
+	for (it = model->next; it != model; it = it->next) {
 		if (cb(it, user_data) == BT_MESH_WALK_STOP) {
 			return;
 		}

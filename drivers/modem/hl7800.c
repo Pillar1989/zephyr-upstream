@@ -140,11 +140,12 @@ struct mdm_control_pinconfig {
 	char *dev_name;
 	gpio_pin_t pin;
 	gpio_flags_t config;
+	gpio_flags_t irq_config;
 };
 
-#define PINCONFIG(name_, pin_, config_)                                        \
-	{                                                                      \
-		.dev_name = name_, .pin = pin_, .config = config_              \
+#define PINCONFIG(name_, pin_, config_, irq_config_)                                               \
+	{                                                                                          \
+		.dev_name = name_, .pin = pin_, .config = config_, .irq_config = irq_config_       \
 	}
 
 /* pin settings */
@@ -193,44 +194,37 @@ struct xmodem_packet {
 
 static const struct mdm_control_pinconfig pinconfig[] = {
 	/* MDM_RESET */
-	PINCONFIG(DT_INST_GPIO_LABEL(0, mdm_reset_gpios),
-		  DT_INST_GPIO_PIN(0, mdm_reset_gpios),
-		  (GPIO_OUTPUT | GPIO_OPEN_DRAIN)),
+	PINCONFIG(DT_INST_GPIO_LABEL(0, mdm_reset_gpios), DT_INST_GPIO_PIN(0, mdm_reset_gpios),
+		  (GPIO_OUTPUT | GPIO_OPEN_DRAIN), 0),
 
 	/* MDM_WAKE */
-	PINCONFIG(DT_INST_GPIO_LABEL(0, mdm_wake_gpios),
-		  DT_INST_GPIO_PIN(0, mdm_wake_gpios),
-		  (GPIO_OUTPUT | GPIO_OPEN_SOURCE)),
+	PINCONFIG(DT_INST_GPIO_LABEL(0, mdm_wake_gpios), DT_INST_GPIO_PIN(0, mdm_wake_gpios),
+		  (GPIO_OUTPUT | GPIO_OPEN_SOURCE), 0),
 
 	/* MDM_PWR_ON */
-	PINCONFIG(DT_INST_GPIO_LABEL(0, mdm_pwr_on_gpios),
-		  DT_INST_GPIO_PIN(0, mdm_pwr_on_gpios),
-		  (GPIO_OUTPUT | GPIO_OPEN_DRAIN)),
+	PINCONFIG(DT_INST_GPIO_LABEL(0, mdm_pwr_on_gpios), DT_INST_GPIO_PIN(0, mdm_pwr_on_gpios),
+		  (GPIO_OUTPUT | GPIO_OPEN_DRAIN), 0),
 
 	/* MDM_FAST_SHUTD */
 	PINCONFIG(DT_INST_GPIO_LABEL(0, mdm_fast_shutd_gpios),
-		  DT_INST_GPIO_PIN(0, mdm_fast_shutd_gpios),
-		  (GPIO_OUTPUT | GPIO_OPEN_DRAIN)),
+		  DT_INST_GPIO_PIN(0, mdm_fast_shutd_gpios), (GPIO_OUTPUT | GPIO_OPEN_DRAIN),
+		  0),
 
 	/* MDM_VGPIO */
-	PINCONFIG(DT_INST_GPIO_LABEL(0, mdm_vgpio_gpios),
-		  DT_INST_GPIO_PIN(0, mdm_vgpio_gpios),
-		  (GPIO_INPUT | GPIO_INT_EDGE_BOTH)),
+	PINCONFIG(DT_INST_GPIO_LABEL(0, mdm_vgpio_gpios), DT_INST_GPIO_PIN(0, mdm_vgpio_gpios),
+		  GPIO_INPUT, GPIO_INT_EDGE_BOTH),
 
 	/* MDM_UART_DSR */
 	PINCONFIG(DT_INST_GPIO_LABEL(0, mdm_uart_dsr_gpios),
-		  DT_INST_GPIO_PIN(0, mdm_uart_dsr_gpios),
-		  (GPIO_INPUT | GPIO_INT_EDGE_BOTH)),
+		  DT_INST_GPIO_PIN(0, mdm_uart_dsr_gpios), GPIO_INPUT, GPIO_INT_EDGE_BOTH),
 
 	/* MDM_UART_CTS */
 	PINCONFIG(DT_INST_GPIO_LABEL(0, mdm_uart_cts_gpios),
-		  DT_INST_GPIO_PIN(0, mdm_uart_cts_gpios),
-		  (GPIO_INPUT | GPIO_INT_EDGE_BOTH)),
+		  DT_INST_GPIO_PIN(0, mdm_uart_cts_gpios), GPIO_INPUT, GPIO_INT_EDGE_BOTH),
 
 	/* MDM_GPIO6 */
-	PINCONFIG(DT_INST_GPIO_LABEL(0, mdm_gpio6_gpios),
-		  DT_INST_GPIO_PIN(0, mdm_gpio6_gpios),
-		  (GPIO_INPUT | GPIO_INT_EDGE_BOTH)),
+	PINCONFIG(DT_INST_GPIO_LABEL(0, mdm_gpio6_gpios), DT_INST_GPIO_PIN(0, mdm_gpio6_gpios),
+		  GPIO_INPUT, GPIO_INT_EDGE_BOTH),
 };
 
 #define MDM_UART_DEV	DEVICE_DT_GET(DT_INST_BUS(0))
@@ -319,6 +313,8 @@ static const struct mdm_control_pinconfig pinconfig[] = {
 #else
 #define MODEM_HL7800_ADDRESS_FAMILY "IPV6"
 #endif
+#define MDM_HL7800_SOCKET_AF_IPV4 0
+#define MDM_HL7800_SOCKET_AF_IPV6 1
 
 #define SET_RAT_M1_CMD_LEGACY "AT+KSRAT=0"
 #define SET_RAT_NB1_CMD_LEGACY "AT+KSRAT=1"
@@ -336,7 +332,6 @@ static const struct mdm_control_pinconfig pinconfig[] = {
 
 #define MDM_ADDR_FAM_MAX_LEN sizeof("IPV4V6")
 
-#ifdef CONFIG_NEWLIB_LIBC
 /* The ? can be a + or - */
 static const char TIME_STRING_FORMAT[] = "\"yy/MM/dd,hh:mm:ss?zz\"";
 #define TIME_STRING_DIGIT_STRLEN 2
@@ -355,7 +350,6 @@ static const char TIME_STRING_FORMAT[] = "\"yy/MM/dd,hh:mm:ss?zz\"";
 #define TM_SEC_RANGE 0, 60 /* leap second */
 #define QUARTER_HOUR_RANGE 0, 96
 #define SECONDS_PER_QUARTER_HOUR (15 * 60)
-#endif
 
 #define SEND_AT_CMD_ONCE_EXPECT_OK(c)                                          \
 	do {                                                                   \
@@ -523,6 +517,7 @@ struct hl7800_iface_ctx {
 	char mdm_active_bands_string[MDM_HL7800_LTE_BAND_STR_SIZE];
 	char mdm_bands_string[MDM_HL7800_LTE_BAND_STR_SIZE];
 	char mdm_imsi[MDM_HL7800_IMSI_MAX_STR_SIZE];
+	int mdm_rssi;
 	uint16_t mdm_bands_top;
 	uint32_t mdm_bands_middle;
 	uint32_t mdm_bands_bottom;
@@ -544,10 +539,8 @@ struct hl7800_iface_ctx {
 	enum mdm_hl7800_network_state network_state;
 	enum net_operator_status operator_status;
 	void (*event_callback)(enum mdm_hl7800_event event, void *event_data);
-#ifdef CONFIG_NEWLIB_LIBC
 	struct tm local_time;
 	int32_t local_time_offset;
-#endif
 	bool local_time_valid;
 	bool configured;
 
@@ -591,10 +584,8 @@ static void generate_fota_state_event(void);
 static void generate_fota_count_event(void);
 #endif
 
-#ifdef CONFIG_NEWLIB_LIBC
 static bool convert_time_string_to_struct(struct tm *tm, int32_t *offset,
 					  char *time_string);
-#endif
 
 #ifdef CONFIG_MODEM_HL7800_LOW_POWER_MODE
 static bool is_cmd_ready(void)
@@ -864,7 +855,7 @@ static void event_handler(enum mdm_hl7800_event event, void *event_data)
 
 void mdm_hl7800_get_signal_quality(int *rsrp, int *sinr)
 {
-	*rsrp = ictx.mdm_ctx.data_rssi;
+	*rsrp = ictx.mdm_rssi;
 	*sinr = ictx.mdm_sinr;
 }
 
@@ -1042,7 +1033,6 @@ error:
 	return ret;
 }
 
-#ifdef CONFIG_NEWLIB_LIBC
 int32_t mdm_hl7800_get_local_time(struct tm *tm, int32_t *offset)
 {
 	int ret;
@@ -1063,7 +1053,6 @@ int32_t mdm_hl7800_get_local_time(struct tm *tm, int32_t *offset)
 	hl7800_unlock();
 	return ret;
 }
-#endif
 
 int32_t mdm_hl7800_get_operator_index(void)
 {
@@ -1247,7 +1236,7 @@ void mdm_hl7800_generate_status_events(void)
 #ifdef CONFIG_MODEM_HL7800_FW_UPDATE
 	generate_fota_state_event();
 #endif
-	event_handler(HL7800_EVENT_RSSI, &ictx.mdm_ctx.data_rssi);
+	event_handler(HL7800_EVENT_RSSI, &ictx.mdm_rssi);
 	event_handler(HL7800_EVENT_SINR, &ictx.mdm_sinr);
 	event_handler(HL7800_EVENT_APN_UPDATE, &ictx.mdm_apn);
 	event_handler(HL7800_EVENT_RAT, &ictx.mdm_rat);
@@ -3221,7 +3210,6 @@ done:
 	return true;
 }
 
-#ifdef CONFIG_NEWLIB_LIBC
 /* Handler: +CCLK: "yy/MM/dd,hh:mm:ss±zz" */
 static bool on_cmd_rtc_query(struct net_buf **buf, uint16_t len)
 {
@@ -3241,7 +3229,7 @@ static bool on_cmd_rtc_query(struct net_buf **buf, uint16_t len)
 		goto done;
 	}
 	if (len != str_len) {
-		LOG_WRN("Unexpected length for RTC string %d (expected:%d)",
+		LOG_WRN("Unexpected length for RTC string %d (expected:%zu)",
 			len, str_len);
 	} else {
 		net_buf_linearize(rtc_string, str_len, *buf, 0, str_len);
@@ -3324,7 +3312,6 @@ static bool convert_time_string_to_struct(struct tm *tm, int32_t *offset,
 	}
 	return (fc == 0);
 }
-#endif
 
 /* Handler: +CEREG: <stat>[,[<lac>],[<ci>],[<AcT>]
  *  [,[<cause_type>],[<reject_cause>] [,[<Active-Time>],[<Periodic-TAU>]]]]
@@ -3389,7 +3376,7 @@ static bool on_cmd_atcmdinfo_rssi(struct net_buf **buf, uint16_t len)
 		search_start = delims[i] + 1;
 	}
 	/* the first value in the message is the RSRP */
-	ictx.mdm_ctx.data_rssi = strtol(value, NULL, 10);
+	ictx.mdm_rssi = strtol(value, NULL, 10);
 	/* the 4th ',' (last in the msg) is the start of the SINR */
 	ictx.mdm_sinr = strtol(delims[3] + 1, NULL, 10);
 	if ((delims[1] - delims[0]) == 1) {
@@ -3398,9 +3385,9 @@ static bool on_cmd_atcmdinfo_rssi(struct net_buf **buf, uint16_t len)
 		 */
 		LOG_INF("RSSI (RSRP): UNKNOWN");
 	} else {
-		LOG_INF("RSSI (RSRP): %d SINR: %d", ictx.mdm_ctx.data_rssi,
+		LOG_INF("RSSI (RSRP): %d SINR: %d", ictx.mdm_rssi,
 			ictx.mdm_sinr);
-		event_handler(HL7800_EVENT_RSSI, &ictx.mdm_ctx.data_rssi);
+		event_handler(HL7800_EVENT_RSSI, &ictx.mdm_rssi);
 		event_handler(HL7800_EVENT_SINR, &ictx.mdm_sinr);
 	}
 done:
@@ -4190,9 +4177,7 @@ static void hl7800_rx(void)
 		CMD_HANDLER("AT+CIMI", atcmdinfo_imsi),
 		CMD_HANDLER("+CFUN: ", modem_functionality),
 		CMD_HANDLER("%MEAS: ", survey_status),
-#ifdef CONFIG_NEWLIB_LIBC
 		CMD_HANDLER("+CCLK: ", rtc_query),
-#endif
 
 		/* UNSOLICITED modem information */
 		/* mobile startup report */
@@ -4379,8 +4364,8 @@ static void shutdown_uart(void)
 	if (ictx.uart_on) {
 		HL7800_IO_DBG_LOG("Power OFF the UART");
 		uart_irq_rx_disable(ictx.mdm_ctx.uart_dev);
-		rc = pm_device_state_set(ictx.mdm_ctx.uart_dev,
-					 PM_DEVICE_STATE_SUSPENDED);
+		rc = pm_device_action_run(ictx.mdm_ctx.uart_dev,
+					 PM_DEVICE_ACTION_SUSPEND);
 		if (rc) {
 			LOG_ERR("Error disabling UART peripheral (%d)", rc);
 		}
@@ -4396,8 +4381,8 @@ static void power_on_uart(void)
 
 	if (!ictx.uart_on) {
 		HL7800_IO_DBG_LOG("Power ON the UART");
-		rc = pm_device_state_set(ictx.mdm_ctx.uart_dev,
-					 PM_DEVICE_STATE_ACTIVE);
+		rc = pm_device_action_run(ictx.mdm_ctx.uart_dev,
+					 PM_DEVICE_ACTION_RESUME);
 		if (rc) {
 			LOG_ERR("Error enabling UART peripheral (%d)", rc);
 		}
@@ -5122,26 +5107,23 @@ static int configure_TCP_socket(struct hl7800_socket *sock)
 	int ret;
 	char cmd_cfg[sizeof("AT+KTCPCFG=#,#,\"" IPV6_ADDR_FORMAT "\",#####")];
 	int dst_port = -1;
+	int af;
 
-#if defined(CONFIG_NET_IPV6)
 	if (sock->dst.sa_family == AF_INET6) {
+		af = MDM_HL7800_SOCKET_AF_IPV6;
 		dst_port = net_sin6(&sock->dst)->sin6_port;
-	} else
-#endif
-#if defined(CONFIG_NET_IPV4)
-		if (sock->dst.sa_family == AF_INET) {
+	} else if (sock->dst.sa_family == AF_INET) {
+		af = MDM_HL7800_SOCKET_AF_IPV4;
 		dst_port = net_sin(&sock->dst)->sin_port;
-	} else
-#endif
-	{
+	} else {
 		return -EINVAL;
 	}
 
 	/* socket # needs assigning */
 	sock->socket_id = MDM_MAX_SOCKETS + 1;
 
-	snprintk(cmd_cfg, sizeof(cmd_cfg), "AT+KTCPCFG=%d,%d,\"%s\",%u", 1, 0,
-		 hl7800_sprint_ip_addr(&sock->dst), dst_port);
+	snprintk(cmd_cfg, sizeof(cmd_cfg), "AT+KTCPCFG=%d,%d,\"%s\",%u,,,,%d", 1, 0,
+		 hl7800_sprint_ip_addr(&sock->dst), dst_port, af);
 	ret = send_at_cmd(sock, cmd_cfg, MDM_CMD_SEND_TIMEOUT, 0, false);
 	if (ret < 0) {
 		LOG_ERR("AT+KTCPCFG ret:%d", ret);
@@ -5164,12 +5146,22 @@ done:
 static int configure_UDP_socket(struct hl7800_socket *sock)
 {
 	int ret = 0;
+	char cmd[sizeof("AT+KUDPCFG=1,0,,,,,0")];
+	int af;
 
 	/* socket # needs assigning */
 	sock->socket_id = MDM_MAX_SOCKETS + 1;
 
-	ret = send_at_cmd(sock, "AT+KUDPCFG=1,0", MDM_CMD_SEND_TIMEOUT, 0,
-			  false);
+	if (sock->family == AF_INET) {
+		af = MDM_HL7800_SOCKET_AF_IPV4;
+	} else if (sock->family == AF_INET6) {
+		af = MDM_HL7800_SOCKET_AF_IPV6;
+	} else {
+		return -EINVAL;
+	}
+
+	snprintk(cmd, sizeof(cmd), "AT+KUDPCFG=1,0,,,,,%d", af);
+	ret = send_at_cmd(sock, cmd, MDM_CMD_SEND_TIMEOUT, 0, false);
 	if (ret < 0) {
 		LOG_ERR("AT+KUDPCFG ret:%d", ret);
 		goto done;
@@ -5753,16 +5745,11 @@ static int hl7800_init(const struct device *dev)
 			return -ENODEV;
 		}
 
-		if ((pinconfig[i].config & GPIO_INT_ENABLE) == 0) {
-			ret = gpio_pin_configure(ictx.gpio_port_dev[i], pinconfig[i].pin,
-						 pinconfig[i].config);
-		} else {
-			ret = gpio_pin_interrupt_configure(ictx.gpio_port_dev[i], pinconfig[i].pin,
-							   pinconfig[i].config);
-		}
+		ret = gpio_pin_configure(ictx.gpio_port_dev[i], pinconfig[i].pin,
+					 pinconfig[i].config);
 		if (ret) {
-			LOG_ERR("Error configuring io %s %d err: %d!",
-				pinconfig[i].dev_name, pinconfig[i].pin, ret);
+			LOG_ERR("Error configuring IO %s %d err: %d!", pinconfig[i].dev_name,
+				pinconfig[i].pin, ret);
 			return ret;
 		}
 	}
@@ -5792,7 +5779,7 @@ static int hl7800_init(const struct device *dev)
 	}
 	ret = gpio_pin_interrupt_configure(ictx.gpio_port_dev[MDM_VGPIO],
 					   pinconfig[MDM_VGPIO].pin,
-					   pinconfig[MDM_VGPIO].config);
+					   pinconfig[MDM_VGPIO].irq_config);
 	if (ret) {
 		LOG_ERR("Error config vgpio interrupt! (%d)", ret);
 		return ret;
@@ -5809,7 +5796,7 @@ static int hl7800_init(const struct device *dev)
 	}
 	ret = gpio_pin_interrupt_configure(ictx.gpio_port_dev[MDM_UART_DSR],
 					   pinconfig[MDM_UART_DSR].pin,
-					   pinconfig[MDM_UART_DSR].config);
+					   pinconfig[MDM_UART_DSR].irq_config);
 	if (ret) {
 		LOG_ERR("Error config uart dsr interrupt! (%d)", ret);
 		return ret;
@@ -5826,7 +5813,7 @@ static int hl7800_init(const struct device *dev)
 	}
 	ret = gpio_pin_interrupt_configure(ictx.gpio_port_dev[MDM_GPIO6],
 					   pinconfig[MDM_GPIO6].pin,
-					   pinconfig[MDM_GPIO6].config);
+					   pinconfig[MDM_GPIO6].irq_config);
 	if (ret) {
 		LOG_ERR("Error config gpio6 interrupt! (%d)", ret);
 		return ret;
@@ -5843,7 +5830,7 @@ static int hl7800_init(const struct device *dev)
 	}
 	ret = gpio_pin_interrupt_configure(ictx.gpio_port_dev[MDM_UART_CTS],
 					   pinconfig[MDM_UART_CTS].pin,
-					   pinconfig[MDM_UART_CTS].config);
+					   pinconfig[MDM_UART_CTS].irq_config);
 	if (ret) {
 		LOG_ERR("Error config uart cts interrupt! (%d)", ret);
 		return ret;
@@ -5856,6 +5843,7 @@ static int hl7800_init(const struct device *dev)
 #ifdef CONFIG_MODEM_SIM_NUMBERS
 	ictx.mdm_ctx.data_imei = ictx.mdm_imei;
 #endif
+	ictx.mdm_ctx.data_rssi = &ictx.mdm_rssi;
 
 	ret = mdm_receiver_register(&ictx.mdm_ctx, MDM_UART_DEV,
 				    mdm_recv_buf, sizeof(mdm_recv_buf));

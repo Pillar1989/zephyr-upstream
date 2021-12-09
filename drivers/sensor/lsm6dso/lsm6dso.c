@@ -753,6 +753,12 @@ static int lsm6dso_init_chip(const struct device *dev)
 		return -EIO;
 	}
 
+	/* I3C disable stay preserved after s/w reset */
+	if (lsm6dso_i3c_disable_set(ctx, LSM6DSO_I3C_DISABLE) < 0) {
+		LOG_DBG("Failed to disable I3C");
+		return -EIO;
+	}
+
 	/* reset device */
 	if (lsm6dso_reset_set(ctx, 1) < 0) {
 		return -EIO;
@@ -868,7 +874,6 @@ static int lsm6dso_init(const struct device *dev)
 
 #define LSM6DSO_SPI_OP  (SPI_WORD_SET(8) |				\
 			 SPI_OP_MODE_MASTER |				\
-			 SPI_LINES_SINGLE |				\
 			 SPI_MODE_CPOL |				\
 			 SPI_MODE_CPHA)					\
 
@@ -882,9 +887,8 @@ static int lsm6dso_init(const struct device *dev)
 			.handle =					\
 			   (void *)&lsm6dso_config_##inst.stmemsc_cfg,	\
 		},							\
-		.stmemsc_cfg.spi = {					\
-			.bus = DEVICE_DT_GET(DT_INST_BUS(inst)),	\
-			.spi_cfg = SPI_CONFIG_DT_INST(inst,		\
+		.stmemsc_cfg = {					\
+			.spi = SPI_DT_SPEC_INST_GET(inst,		\
 					   LSM6DSO_SPI_OP,		\
 					   0),				\
 		},							\
@@ -906,9 +910,8 @@ static int lsm6dso_init(const struct device *dev)
 			.handle =					\
 			   (void *)&lsm6dso_config_##inst.stmemsc_cfg,	\
 		},							\
-		.stmemsc_cfg.i2c = {					\
-			.bus = DEVICE_DT_GET(DT_INST_BUS(inst)),	\
-			.i2c_slv_addr = DT_INST_REG_ADDR(inst),		\
+		.stmemsc_cfg = {					\
+			.i2c = I2C_DT_SPEC_INST_GET(inst),		\
 		},							\
 		COND_CODE_1(DT_INST_NODE_HAS_PROP(inst, irq_gpios),	\
 			(LSM6DSO_CFG_IRQ(inst)), ())			\

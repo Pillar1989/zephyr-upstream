@@ -13,11 +13,26 @@
  * 2) Stack is in first HPSRAM bank.
  */
 
-#include <soc/shim.h>
-#include <soc/platform.h>
-#include <soc/memory.h>
+#include <autoconf.h> /* not built by zephyr */
+#include <devicetree.h>
+#include <cavs-shim.h>
+#include <cavs-mem.h>
 #include <xtensa/corebits.h>
 #include <xtensa/config/core-isa.h>
+#include "platform.h"
+
+#define PLATFORM_PRIMARY_CORE_ID 0
+
+#define SHIM_ADDR DT_REG_ADDR(DT_NODELABEL(shim))
+#define SHIM_L2_MECS (SHIM_ADDR + 0xd0)
+#define SHIM_L2_PREF_CFG (SHIM_ADDR + 0x508)
+
+#define HSPGCTL0  DT_REG_ADDR(DT_NODELABEL(l2lm)) + 0x10
+#define HSRMCTL0  DT_REG_ADDR(DT_NODELABEL(l2lm)) + 0x14
+#define HSPGISTS0 DT_REG_ADDR(DT_NODELABEL(l2lm)) + 0x18
+#define HSPGCTL1  DT_REG_ADDR(DT_NODELABEL(l2lm)) + 0x20
+#define HSRMCTL1  DT_REG_ADDR(DT_NODELABEL(l2lm)) + 0x24
+#define HSPGISTS1 DT_REG_ADDR(DT_NODELABEL(l2lm)) + 0x28
 
 	.type   boot_master_core, @function
 
@@ -43,17 +58,17 @@ l2_cache_pref:
 	.word SHIM_L2_PREF_CFG
 #endif
 
-sof_stack_base:
-	.word SOF_STACK_BASE
+imr_stack_base:
+	.word CONFIG_IMR_MANIFEST_ADDR
 
 wnd0_base:
-	.word DMWBA(0)
+	.word DT_REG_ADDR(DT_NODELABEL(win))
 
 wnd0_size:
-	.word DMWLO(0)
+	.word DT_REG_ADDR(DT_NODELABEL(win)) + 4
 
 wnd0_base_val:
-	.word HP_SRAM_WIN0_BASE | DMWBA_READONLY | DMWBA_ENABLE
+	.word HP_SRAM_WIN0_BASE | CAVS_DMWBA_READONLY | CAVS_DMWBA_ENABLE
 
 wnd0_size_val:
 	.word HP_SRAM_WIN0_SIZE | 0x7
@@ -66,7 +81,7 @@ wnd0_error_address:
 
 #if defined(PLATFORM_MEM_INIT_AT_BOOT)
 shim_ldoctl_address:
-	.word SHIM_BASE + SHIM_LDOCTL
+	.word (SHIM_ADDR + 0xa4)
 
 ldoctl_hpsram_ldo_on:
 	.word SHIM_LDOCTL_HPSRAM_LDO_ON
@@ -169,7 +184,7 @@ boot_init:
 #endif
 
 	/* reprogram stack to the area defined by main FW */
-	l32r	a3, sof_stack_base
+	l32r	a3, imr_stack_base
 	mov	sp, a3
 
 	/* set status register to 0x00000005 in wnd0 */

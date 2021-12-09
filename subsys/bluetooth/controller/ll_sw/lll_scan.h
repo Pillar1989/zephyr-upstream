@@ -62,6 +62,7 @@ struct lll_scan_aux {
 
 	uint8_t chan:6;
 	uint8_t state:1;
+	uint8_t is_chain_sched:1;
 
 	uint8_t phy:3;
 
@@ -75,6 +76,13 @@ struct lll_scan_aux {
 	struct node_rx_pdu *node_conn_rx;
 #endif /* CONFIG_BT_CENTRAL */
 };
+
+
+/* Define to check if filter is enabled and in addition if it is Extended Scan
+ * Filtering.
+ */
+#define SCAN_FP_FILTER BIT(0)
+#define SCAN_FP_EXT    BIT(1)
 
 int lll_scan_init(void);
 int lll_scan_reset(void);

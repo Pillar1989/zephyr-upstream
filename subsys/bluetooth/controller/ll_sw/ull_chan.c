@@ -23,6 +23,7 @@
 #include "lll/lll_adv_types.h"
 #include "lll_adv.h"
 #include "lll/lll_adv_pdu.h"
+#include "lll/lll_df_types.h"
 #include "lll_conn.h"
 
 #include "ull_adv_types.h"
@@ -51,6 +52,10 @@ uint8_t ll_chm_update(uint8_t const *const chm)
 #if defined(CONFIG_BT_CTLR_ADV_PERIODIC)
 	(void)ull_adv_sync_chm_update();
 #endif /* CONFIG_BT_CTLR_ADV_PERIODIC */
+
+#if (CONFIG_BT_CTLR_ADV_AUX_SET > 0)
+	(void)ull_adv_aux_chm_update();
+#endif /*(CONFIG_BT_CTLR_ADV_AUX_SET > 0) */
 
 	/* TODO: Should failure due to Channel Map Update being already in
 	 *       progress be returned to caller?

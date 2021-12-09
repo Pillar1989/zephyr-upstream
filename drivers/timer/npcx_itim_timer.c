@@ -34,6 +34,7 @@
  *   "sleep/deep sleep" power state if CONFIG_PM is enabled.
  */
 
+#include <device.h>
 #include <drivers/clock_control.h>
 #include <drivers/timer/system_timer.h>
 #include <sys_clock.h>
@@ -265,6 +266,17 @@ uint32_t sys_clock_cycle_get_32(void)
 
 	/* Return how many cycles since system kernel timer start counting */
 	return (uint32_t)(current);
+}
+
+uint64_t sys_clock_cycle_get_64(void)
+{
+	k_spinlock_key_t key = k_spin_lock(&lock);
+	uint64_t current = npcx_itim_get_sys_cyc64();
+
+	k_spin_unlock(&lock, key);
+
+	/* Return how many cycles since system kernel timer start counting */
+	return current;
 }
 
 int sys_clock_driver_init(const struct device *dev)
